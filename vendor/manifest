@@ -32,6 +32,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/anvie/port-scanner",
+			"repository": "https://github.com/anvie/port-scanner",
+			"revision": "012c64dbafd54dbff02c2192b5fdf18a8dda9c38",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/temoto/robotstxt",
 			"repository": "https://github.com/temoto/robotstxt",
 			"revision": "9e4646fa705336d5b2fa9dddfafbe0a1a965acd7",
