@@ -17,17 +17,25 @@ func GetRenderedBody(doc *html.Node) (string, error) {
 }
 
 func getBody(doc *html.Node) (b *html.Node, err error) {
-	if doc.Type == html.ElementNode && doc.Data == "body" {
+	if checkIfBody(doc) {
 		b = doc
 	} else {
 		for c := doc.FirstChild; c != nil; c = c.NextSibling {
-			if c.Type == html.ElementNode && c.Data == "body" {
+			if checkIfBody(c) {
 				b = c
 			}
 		}
 	}
 	if b == nil {
 		err = errors.New("Missing <body> in the node tree")
+		return
+	}
+	return
+}
+
+func checkIfBody(n *html.Node) (b bool) {
+	if n.Type == html.ElementNode && n.Data == "body" {
+		b = true
 		return
 	}
 	return
