@@ -2,8 +2,8 @@ package crawler
 
 import (
 	"bytes"
-	"golang.org/x/net/html"
 	"errors"
+	"golang.org/x/net/html"
 	"io"
 )
 
@@ -21,8 +21,8 @@ func getBody(doc *html.Node) (b *html.Node, err error) {
 		b = doc
 	} else {
 		for c := doc.FirstChild; c != nil; c = c.NextSibling {
-			if doc.Type == html.ElementNode && doc.Data == "body" {
-				b = doc
+			if c.Type == html.ElementNode && c.Data == "body" {
+				b = c
 			}
 		}
 	}
