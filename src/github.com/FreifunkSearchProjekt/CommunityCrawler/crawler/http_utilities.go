@@ -19,11 +19,10 @@ func GetRenderedBody(doc *html.Node) (string, error) {
 func getBody(doc *html.Node) (b *html.Node, err error) {
 	if checkIfBody(doc) {
 		b = doc
-	} else {
-		for c := doc.FirstChild; c != nil; c = c.NextSibling {
-			if checkIfBody(c) {
-				b = c
-			}
+	}
+	for c := doc.FirstChild; c != nil; c = c.NextSibling {
+		if checkIfBody(c) {
+			b = c
 		}
 	}
 	if b == nil {
