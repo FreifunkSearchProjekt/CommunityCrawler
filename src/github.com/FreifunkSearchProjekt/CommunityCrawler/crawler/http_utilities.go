@@ -16,22 +16,21 @@ func GetRenderedBody(doc *html.Node) (string, error) {
 	return body, nil
 }
 
-func getBody(doc *html.Node) (*html.Node, error) {
-	var b *html.Node
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "body" {
-			b = n
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
+func getBody(doc *html.Node) (b *html.Node, err error) {
+	if doc.Type == html.ElementNode && doc.Data == "body" {
+		b = doc
+	} else {
+		for c := doc.FirstChild; c != nil; c = c.NextSibling {
+			if doc.Type == html.ElementNode && doc.Data == "body" {
+				b = doc
+			}
 		}
 	}
-	f(doc)
-	if b != nil {
-		return b, nil
+	if b == nil {
+		err = errors.New("Missing <body> in the node tree")
+		return
 	}
-	return nil, errors.New("Missing <body> in the node tree")
+	return
 }
 
 func renderNode(n *html.Node) string {
