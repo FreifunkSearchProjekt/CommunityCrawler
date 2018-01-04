@@ -18,6 +18,7 @@ type URL struct {
 	Microdata *microdata.Microdata
 	Page      string
 	Body      string
+	Title     string
 }
 
 // Create the Extender implementation, based on the gocrawl-provided DefaultExtender,
@@ -70,6 +71,12 @@ func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
 		fmt.Errorf("%s", err)
 	}
 	currentURLData.Body = body
+
+	title, err := GetTitle(currentURLData.Page)
+	if err != nil {
+		fmt.Errorf("%s", err)
+	}
+	currentURLData.Title = title
 }
 
 func Crawl(url string) (dataToIndex *CrawlFoundings) {
