@@ -5,9 +5,11 @@ import (
 	"errors"
 	"golang.org/x/net/html"
 	"io"
+	"strings"
 )
 
-func GetRenderedBody(doc *html.Node) (string, error) {
+func GetRenderedBody(htm string) (string, error) {
+	doc, _ := html.Parse(strings.NewReader(htm))
 	bn, err := getBody(doc)
 	if err != nil {
 		return "", err

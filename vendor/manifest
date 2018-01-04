@@ -38,6 +38,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/namsral/microdata",
+			"repository": "https://github.com/namsral/microdata",
+			"revision": "a003b1c2b6833cec9bad3fc30aace65bf03d9df6",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/temoto/robotstxt",
 			"repository": "https://github.com/temoto/robotstxt",
 			"revision": "9e4646fa705336d5b2fa9dddfafbe0a1a965acd7",
