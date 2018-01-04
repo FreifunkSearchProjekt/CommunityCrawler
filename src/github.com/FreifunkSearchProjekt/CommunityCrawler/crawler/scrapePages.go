@@ -105,6 +105,5 @@ func Crawl(url string) (dataToIndex *CrawlFoundings) {
 	c.Run(url)
 
 	dataToIndex = extender.CurrentCrawlFoundings
-	log.Println(extender.CurrentCrawlFoundings)
 	return
 }
