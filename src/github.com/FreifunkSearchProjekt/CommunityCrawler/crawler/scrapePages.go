@@ -11,7 +11,7 @@ import (
 )
 
 type CrawlFoundings struct {
-	UrlsData map[int64]URL
+	UrlsData map[int64]*URL
 }
 
 type URL struct {
@@ -54,8 +54,7 @@ func getPage(url string) (body string, err error) {
 func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
 	log.Println("Visited: ", ctx.NormalizedURL().String())
 	log.Println(len(x.CurrentCrawlFoundings.UrlsData))
-	currentURLData := x.CurrentCrawlFoundings.UrlsData[int64(len(x.CurrentCrawlFoundings.UrlsData))]
-	log.Println(currentURLData)
+	currentURLData := &URL{}
 	currentURLData.URL = ctx.NormalizedURL()
 
 	pageMicrodata, err := microdata.ParseURL(ctx.NormalizedURL().String())
@@ -81,12 +80,12 @@ func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
 		fmt.Errorf("%s", err)
 	}
 	currentURLData.Title = title
-	log.Println(currentURLData)
+	x.CurrentCrawlFoundings.UrlsData[int64(len(x.CurrentCrawlFoundings.UrlsData))] = currentURLData
 }
 
 func Crawl(url string) (dataToIndex *CrawlFoundings) {
 	crawlFoundings := &CrawlFoundings{
-		UrlsData: make(map[int64]URL),
+		UrlsData: make(map[int64]*URL),
 	}
 
 	extender := new(Extender)
