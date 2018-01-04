@@ -1,0 +1,7 @@
+community_id: ffslfl
+community_access_token: null
+indexer:
+ - http://localhost:9999
+network: []
+external_pages:
+ - https://schleswig-flensburg.freifunk.net

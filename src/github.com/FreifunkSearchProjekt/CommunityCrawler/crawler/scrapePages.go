@@ -5,6 +5,7 @@ import (
 	"github.com/PuerkitoBio/gocrawl"
 	"github.com/namsral/microdata"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -51,16 +52,19 @@ func getPage(url string) (body string, err error) {
 
 // Override Visit for our need.
 func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
-	currentURLData := x.CurrentCrawlFoundings.UrlsData[int64(len(x.CurrentCrawlFoundings.UrlsData)+1)]
-	currentURLData.URL = ctx.URL()
+	log.Println("Visited: ", ctx.NormalizedURL().String())
+	log.Println(len(x.CurrentCrawlFoundings.UrlsData))
+	currentURLData := x.CurrentCrawlFoundings.UrlsData[int64(len(x.CurrentCrawlFoundings.UrlsData))]
+	log.Println(currentURLData)
+	currentURLData.URL = ctx.NormalizedURL()
 
-	pageMicrodata, err := microdata.ParseURL(ctx.URL().String())
+	pageMicrodata, err := microdata.ParseURL(ctx.NormalizedURL().String())
 	if err != nil {
 		fmt.Errorf("%s", err)
 	}
 	currentURLData.Microdata = pageMicrodata
 
-	page, err := getPage(ctx.URL().String())
+	page, err := getPage(ctx.NormalizedURL().String())
 	if err != nil {
 		fmt.Errorf("%s", err)
 	}
@@ -77,15 +81,16 @@ func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
 		fmt.Errorf("%s", err)
 	}
 	currentURLData.Title = title
+	log.Println(currentURLData)
 }
 
 func Crawl(url string) (dataToIndex *CrawlFoundings) {
-	dataToIndex = &CrawlFoundings{
+	crawlFoundings := &CrawlFoundings{
 		UrlsData: make(map[int64]URL),
 	}
 
 	extender := new(Extender)
-	extender.CurrentCrawlFoundings = dataToIndex
+	extender.CurrentCrawlFoundings = crawlFoundings
 
 	// Set custom options
 	opts := gocrawl.NewOptions(extender)
@@ -94,12 +99,13 @@ func Crawl(url string) (dataToIndex *CrawlFoundings) {
 	// specific rules possible in robots.txt.
 	opts.RobotUserAgent = "FreifunkSearchProjektCrawler"
 
-	opts.LogFlags = gocrawl.LogAll
+	opts.LogFlags = gocrawl.LogError
 	opts.SameHostOnly = true
 
 	c := gocrawl.NewCrawlerWithOptions(opts)
 	c.Run(url)
 
 	dataToIndex = extender.CurrentCrawlFoundings
+	log.Println(extender.CurrentCrawlFoundings)
 	return
 }

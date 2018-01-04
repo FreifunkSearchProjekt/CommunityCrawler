@@ -132,6 +132,12 @@
 			"revision": "e19ae1496984b1c655b8044a65c0300a3c878dd3",
 			"branch": "master",
 			"path": "/width"
+		},
+		{
+			"importpath": "gopkg.in/yaml.v2",
+			"repository": "https://gopkg.in/yaml.v2",
+			"revision": "0e4404da71227dcc02fb1deee803d93e86d08f72",
+			"branch": "v2"
 		}
 	]
 }

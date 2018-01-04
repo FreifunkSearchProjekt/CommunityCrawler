@@ -1,10 +1,8 @@
 package crawler
 
 import (
-	"bytes"
 	"errors"
 	"golang.org/x/net/html"
-	"io"
 	"strings"
 )
 

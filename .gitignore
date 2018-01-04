@@ -14,3 +14,4 @@
 .glide/
 bin/
 pkg/
+crawler.yaml
