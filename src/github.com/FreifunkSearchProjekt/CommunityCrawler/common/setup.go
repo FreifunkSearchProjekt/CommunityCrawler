@@ -44,7 +44,6 @@ func work(url string, config *Config) {
 	transactionData := transaction{}
 	transactionData.BasicWebpages = make([]WebpageBasic, len(results))
 	for i, u := range results {
-		log.Printf("Microdata: %+v\n", u.Microdata.Items)
 		page := WebpageBasic{
 			URL:   u.URL.String(),
 			Path:  u.URL.Path,

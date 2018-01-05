@@ -92,9 +92,9 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 				log.Printf("[ERR] %s", err)
 			}
 			if len(body) > 0 {
-				currentURLData.Title = body
+				currentURLData.Body = body
 			} else {
-				currentURLData.Title = page
+				currentURLData.Body = page
 			}
 
 			title, err := GetTitle(doc)
@@ -111,6 +111,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			// Process the body to find the links
 			// Enqueue all links as HEAD requests
 			enqueueLinks(ctx, doc, u)
+			return
 		}))
 
 	// Handle HEAD requests for html responses coming from the source host - we don't want
@@ -120,11 +121,14 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
 				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
 			}
+			return
 		}))
 
 	// Create the Fetcher, handle the logging first, then dispatch to the Muxer
 	h := logHandler(mux)
 	f := fetchbot.New(h)
+	f.AutoClose = true
+	f.UserAgent = "FreifunkSearchProjektCrawler"
 
 	// Start processing
 	q := f.Start()
@@ -135,9 +139,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 	if err != nil {
 		log.Printf("[ERR] GET %s - %s\n", normalized, err)
 	}
-	log.Println("Before block")
 	q.Block()
-	log.Println("After block")
 
 	dataToIndex = UrlsData
 	return
