@@ -161,7 +161,6 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url
 		// Ignore if host of href isn't the same as the original host
 		if u.Fragment == "" && u.RawQuery == "" && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
 			if !dup[u.String()] {
-				log.Println("Now: ", u.String())
 				if _, err := ctx.Q.SendStringHead(u.String()); err != nil {
 					log.Printf("error: enqueue head %s - %s\n", u, err)
 				} else {
@@ -174,7 +173,6 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url
 			// Ignore URLs with different scheme than https or http
 			// Ignore if host of href isn't the same as the original host
 			if !dup[u.Scheme+"://"+u.Host+u.Path] && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
-				log.Println("Now2: ", u.Scheme+"://"+u.Host+u.Path)
 				if _, err := ctx.Q.SendStringHead(u.Scheme + "://" + u.Host + u.Path); err != nil {
 					log.Printf("error: enqueue head %s - %s\n", u, err)
 				} else {
