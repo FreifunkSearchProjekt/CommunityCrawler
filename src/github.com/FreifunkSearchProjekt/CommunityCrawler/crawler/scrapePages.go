@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"fmt"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/PuerkitoBio/purell"
@@ -21,6 +20,8 @@ var (
 
 	// Duplicates table
 	dup = map[string]bool{}
+
+	purellFlags purell.NormalizationFlags
 )
 
 type URL struct {
@@ -31,14 +32,17 @@ type URL struct {
 }
 
 func Crawl(urlS string) (dataToIndex map[int64]*URL) {
+	// Don't force HTTP
+	purellFlags = purell.FlagDecodeDWORDHost | purell.FlagDecodeOctalHost | purell.FlagDecodeHexHost | purell.FlagRemoveUnnecessaryHostDots | purell.FlagRemoveEmptyPortSeparator | purell.FlagsUsuallySafeGreedy | purell.FlagRemoveDirectoryIndex | purell.FlagRemoveFragment | purell.FlagRemoveDuplicateSlashes
 
 	var UrlsData = make(map[int64]*URL)
 
 	// Parse the provided url
-	normalized, err := purell.NormalizeURLString(urlS, purell.FlagsAllGreedy)
+	normalized, err := purell.NormalizeURLString(urlS, purellFlags)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	u, err := url.Parse(normalized)
 	if err != nil {
 		log.Fatal(err)
@@ -73,19 +77,19 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 
 			pageMicrodata, err := microdata.ParseURL(ctx.Cmd.URL().String())
 			if err != nil {
-				fmt.Errorf("%s", err)
+				log.Printf("[ERR] %s", err)
 			}
 			currentURLData.Microdata = pageMicrodata
 
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
 			if err != nil {
-				fmt.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
+				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
 				return
 			}
 
 			body, err := GetRenderedBody(doc)
 			if err != nil {
-				fmt.Errorf("%s", err)
+				log.Printf("[ERR] %s", err)
 			}
 			if len(body) > 0 {
 				currentURLData.Title = body
@@ -95,7 +99,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 
 			title, err := GetTitle(doc)
 			if err != nil {
-				fmt.Errorf("%s", err)
+				log.Printf("[ERR] %s", err)
 			}
 			if len(title) > 0 {
 				currentURLData.Title = title
@@ -114,7 +118,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 	mux.Response().Method("HEAD").Host(u.Host).ContentType("text/html").Handler(fetchbot.HandlerFunc(
 		func(ctx *fetchbot.Context, res *http.Response, err error) {
 			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
-				fmt.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
+				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
 			}
 		}))
 
@@ -126,12 +130,14 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 	q := f.Start()
 
 	// Enqueue the seed, which is the first entry in the dup map
-	dup[urlS] = true
-	_, err = q.SendStringGet(urlS)
+	dup[normalized] = true
+	_, err = q.SendStringGet(normalized)
 	if err != nil {
-		fmt.Printf("[ERR] GET %s - %s\n", urlS, err)
+		log.Printf("[ERR] GET %s - %s\n", normalized, err)
 	}
+	log.Println("Before block")
 	q.Block()
+	log.Println("After block")
 
 	dataToIndex = UrlsData
 	return
@@ -141,9 +147,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 func logHandler(wrapped fetchbot.Handler) fetchbot.Handler {
 	return fetchbot.HandlerFunc(func(ctx *fetchbot.Context, res *http.Response, err error) {
 		if err == nil {
-			if ctx.Cmd.Method() != "HEAD" {
-				fmt.Printf("[%d] %s %s - %s\n", res.StatusCode, ctx.Cmd.Method(), ctx.Cmd.URL(), res.Header.Get("Content-Type"))
-			}
+			log.Printf("[%d] %s %s - %s\n", res.StatusCode, ctx.Cmd.Method(), ctx.Cmd.URL(), res.Header.Get("Content-Type"))
 		}
 		wrapped.Handle(ctx, res, err)
 	})
@@ -168,7 +172,11 @@ func handleBaseTag(root *url.URL, baseHref string, aHref string) string {
 	if err != nil {
 		return ""
 	}
-	return resolvedURL.String()
+	normalized, err := purell.NormalizeURLString(resolvedURL.String(), purellFlags)
+	if err != nil {
+		log.Printf("error: normalize URL %s - %s\n", resolvedURL.String(), err)
+	}
+	return normalized
 }
 
 func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url.URL) {
@@ -185,7 +193,7 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url
 	for _, s := range urls {
 		if len(s) > 0 && !strings.HasPrefix(s, "#") {
 			// Resolve address
-			normalized, err := purell.NormalizeURLString(s, purell.FlagsAllGreedy)
+			normalized, err := purell.NormalizeURLString(s, purellFlags)
 			if err != nil {
 				log.Printf("error: normalize URL %s - %s\n", s, err)
 			}
