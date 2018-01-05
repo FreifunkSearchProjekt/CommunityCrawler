@@ -73,7 +73,11 @@ func (x *Extender) Visited(ctx *gocrawl.URLContext, harvested interface{}) {
 	if err != nil {
 		fmt.Errorf("%s", err)
 	}
-	currentURLData.Body = body
+	if len(body) > 0 {
+		currentURLData.Title = body
+	} else {
+		currentURLData.Title = currentURLData.Page
+	}
 
 	title, err := GetTitle(currentURLData.Page)
 	if err != nil {
