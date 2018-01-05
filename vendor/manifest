@@ -2,6 +2,12 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "github.com/PuerkitoBio/fetchbot",
+			"repository": "https://github.com/PuerkitoBio/fetchbot",
+			"revision": "61eb5a10440a8313c73a7ff88602380872bff2ce",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/PuerkitoBio/gocrawl",
 			"repository": "https://github.com/PuerkitoBio/gocrawl",
 			"revision": "856734472e207989f9e1c6a467f03df38eb41664",
@@ -46,6 +52,12 @@
 		{
 			"importpath": "github.com/temoto/robotstxt",
 			"repository": "https://github.com/temoto/robotstxt",
+			"revision": "9e4646fa705336d5b2fa9dddfafbe0a1a965acd7",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/temoto/robotstxt-go",
+			"repository": "https://github.com/temoto/robotstxt-go",
 			"revision": "9e4646fa705336d5b2fa9dddfafbe0a1a965acd7",
 			"branch": "master"
 		},

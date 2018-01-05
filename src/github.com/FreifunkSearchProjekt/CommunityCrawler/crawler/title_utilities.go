@@ -1,35 +1,18 @@
 package crawler
 
 import (
-	"bytes"
-	"github.com/andybalholm/cascadia"
-	"golang.org/x/net/html"
-	"io"
-	"regexp"
-	"strings"
+	"github.com/PuerkitoBio/goquery"
 )
 
-var stripTitle = regexp.MustCompile(`(?:<title>)(.*)(?:<\/title>)`)
-
-func GetTitle(htm string) (string, error) {
+func GetTitle(htm *goquery.Document) (string, error) {
 	var title string
-	doc, err := html.Parse(strings.NewReader(htm))
+	var err error
+
+	htm.Find("title").Each(func(i int, s *goquery.Selection) {
+		title, err = s.Html()
+	})
 	if err != nil {
 		return "", err
-	}
-	titleFound := cascadia.MustCompile("title").MatchFirst(doc)
-
-	if titleFound != nil {
-		var buf bytes.Buffer
-		w := io.Writer(&buf)
-		RenderErr := html.Render(w, titleFound)
-		if RenderErr != nil {
-			return "", RenderErr
-		}
-		titleNode := buf.String()
-		if len(titleNode) > 0 {
-			title = stripTitle.FindAllStringSubmatch(titleNode, -1)[0][1]
-		}
 	}
 
 	return title, nil

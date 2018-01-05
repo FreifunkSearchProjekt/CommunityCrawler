@@ -1,29 +1,19 @@
 package crawler
 
 import (
-	"bytes"
-	"github.com/andybalholm/cascadia"
-	"golang.org/x/net/html"
-	"io"
-	"strings"
+	"github.com/PuerkitoBio/goquery"
 )
 
-func GetRenderedBody(htm string) (string, error) {
+func GetRenderedBody(htm *goquery.Document) (string, error) {
 	var body string
-	doc, err := html.Parse(strings.NewReader(htm))
+	var err error
+
+	htm.Find("body").Each(func(i int, s *goquery.Selection) {
+		body, err = s.Html()
+	})
+
 	if err != nil {
 		return "", err
-	}
-	bodyFound := cascadia.MustCompile("body").MatchFirst(doc)
-
-	if bodyFound != nil {
-		var buf bytes.Buffer
-		w := io.Writer(&buf)
-		RenderErr := html.Render(w, bodyFound)
-		if RenderErr != nil {
-			return "", RenderErr
-		}
-		body = buf.String()
 	}
 
 	return body, nil
