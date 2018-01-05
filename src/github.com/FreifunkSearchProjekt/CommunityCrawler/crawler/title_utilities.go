@@ -1,41 +1,31 @@
 package crawler
 
 import (
-	"errors"
+	"bytes"
+	"github.com/andybalholm/cascadia"
 	"golang.org/x/net/html"
+	"io"
+	"regexp"
 	"strings"
 )
 
+var stripTitle = regexp.MustCompile(`(?:<title>)(.*)(?:<\/title>)`)
+
 func GetTitle(htm string) (string, error) {
-	doc, _ := html.Parse(strings.NewReader(htm))
-	tn, err := getTitle(doc)
+	doc, err := html.Parse(strings.NewReader(htm))
 	if err != nil {
 		return "", err
 	}
-	title := tn.Data
+	titleFound := cascadia.MustCompile("title").MatchFirst(doc)
+
+	var buf bytes.Buffer
+	w := io.Writer(&buf)
+	err = html.Render(w, titleFound)
+	if err != nil {
+		return "", err
+	}
+	titleNode := buf.String()
+
+	title := stripTitle.FindAllStringSubmatch(titleNode, 1)[0][1]
 	return title, nil
-}
-
-func getTitle(doc *html.Node) (b *html.Node, err error) {
-	if checkIfTitle(doc) {
-		b = doc
-	}
-	for c := doc.FirstChild; c != nil; c = c.NextSibling {
-		if checkIfTitle(c) {
-			b = c
-		}
-	}
-	if b == nil {
-		err = errors.New("Missing <title> in the node tree")
-		return
-	}
-	return
-}
-
-func checkIfTitle(n *html.Node) (b bool) {
-	if n.Type == html.ElementNode && n.Data == "title" {
-		b = true
-		return
-	}
-	return
 }

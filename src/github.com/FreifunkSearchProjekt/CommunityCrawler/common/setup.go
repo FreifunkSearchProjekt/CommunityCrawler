@@ -44,6 +44,7 @@ func work(url string, config *Config) {
 	transactionData := transaction{}
 	transactionData.BasicWebpages = make([]WebpageBasic, len(results.UrlsData))
 	for i, u := range results.UrlsData {
+		log.Println("Microdata: ", u.Microdata)
 		page := WebpageBasic{
 			URL:   u.URL.String(),
 			Path:  u.URL.Path,
@@ -55,7 +56,6 @@ func work(url string, config *Config) {
 
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(transactionData)
-	log.Println(b.String())
 	for _, i := range config.Indexer {
 		var url string
 		if strings.HasSuffix(i, "/") {
@@ -64,11 +64,10 @@ func work(url string, config *Config) {
 			url = i + "/connector_api/index/" + config.CommunityID + "/"
 		}
 
-		log.Println(url)
-		res, err := http.Post(url, "application/json; charset=utf-8", b)
-		if res.StatusCode != 200 {
-			log.Println("Some Error occured while contacting indexer: ", res.Status)
-		}
+		_, err := http.Post(url, "application/json; charset=utf-8", b)
+		/*		if res.StatusCode != 200 {
+				log.Println("Some Error occured while contacting indexer: ", res.Status)
+			}*/
 		if err != nil {
 			log.Println("Got error sending: ", err)
 		}
