@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/PuerkitoBio/purell"
 	"github.com/namsral/microdata"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"sync"
 )
@@ -33,7 +35,11 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 	var UrlsData = make(map[int64]*URL)
 
 	// Parse the provided url
-	u, err := url.Parse(urlS)
+	normalized, err := purell.NormalizeURLString(urlS, purell.FlagsAllGreedy)
+	if err != nil {
+		log.Fatal(err)
+	}
+	u, err := url.Parse(normalized)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,7 +67,6 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			}
 			page = string(pageBytes)
 
-			log.Println("Visited: ", ctx.Cmd.URL())
 			log.Println(len(UrlsData))
 			currentURLData := &URL{}
 			currentURLData.URL = ctx.Cmd.URL()
@@ -73,6 +78,10 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			currentURLData.Microdata = pageMicrodata
 
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+			if err != nil {
+				fmt.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
+				return
+			}
 
 			body, err := GetRenderedBody(doc)
 			if err != nil {
@@ -96,10 +105,6 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			UrlsData[int64(len(UrlsData))] = currentURLData
 
 			// Process the body to find the links
-			if err != nil {
-				fmt.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
-				return
-			}
 			// Enqueue all links as HEAD requests
 			enqueueLinks(ctx, doc, u)
 		}))
@@ -144,45 +149,81 @@ func logHandler(wrapped fetchbot.Handler) fetchbot.Handler {
 	})
 }
 
+func handleBaseTag(root *url.URL, baseHref string, aHref string) string {
+	resolvedBase, err := root.Parse(baseHref)
+	if err != nil {
+		return ""
+	}
+
+	parsedURL, err := url.Parse(aHref)
+	if err != nil {
+		return ""
+	}
+	// If a[href] starts with a /, it overrides the base[href]
+	if parsedURL.Host == "" && !strings.HasPrefix(aHref, "/") {
+		aHref = path.Join(resolvedBase.Path, aHref)
+	}
+
+	resolvedURL, err := resolvedBase.Parse(aHref)
+	if err != nil {
+		return ""
+	}
+	return resolvedURL.String()
+}
+
 func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url.URL) {
 	mu.Lock()
-	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
+	baseURL, _ := doc.Find("base[href]").Attr("href")
+	urls := doc.Find("a[href]").Map(func(_ int, s *goquery.Selection) string {
 		val, _ := s.Attr("href")
-		// Resolve address
-		u, err := ctx.Cmd.URL().Parse(val)
-		if err != nil {
-			log.Printf("error: resolve URL %s - %s\n", val, err)
-			return
+		if baseURL != "" {
+			val = handleBaseTag(doc.Url, baseURL, val)
 		}
-		// If prevents sending unnecessary Head requests
-		// Ignore URLs that have a #
-		// Ignore URLs that have ?
-		// Ignore URLs with different scheme than https or http
-		// Ignore if host of href isn't the same as the original host
-		if u.Fragment == "" && u.RawQuery == "" && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
-			if !dup[u.String()] {
-				if _, err := ctx.Q.SendStringHead(u.String()); err != nil {
-					log.Printf("error: enqueue head %s - %s\n", u, err)
-				} else {
-					dup[u.String()] = true
-				}
+		return val
+	})
+
+	for _, s := range urls {
+		if len(s) > 0 && !strings.HasPrefix(s, "#") {
+			// Resolve address
+			normalized, err := purell.NormalizeURLString(s, purell.FlagsAllGreedy)
+			if err != nil {
+				log.Printf("error: normalize URL %s - %s\n", s, err)
 			}
-		} else {
+			u, err := ctx.Cmd.URL().Parse(normalized)
+			if err != nil {
+				log.Printf("error: resolve URL %s - %s\n", s, err)
+				return
+			}
 			// If prevents sending unnecessary Head requests
-			// Ignore if already duplicated
+			// Ignore URLs that have a #
+			// Ignore URLs that have ?
 			// Ignore URLs with different scheme than https or http
 			// Ignore if host of href isn't the same as the original host
-			if !dup[u.Scheme+"://"+u.Host+u.Path] && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
-				if _, err := ctx.Q.SendStringHead(u.Scheme + "://" + u.Host + u.Path); err != nil {
-					log.Printf("error: enqueue head %s - %s\n", u, err)
-				} else {
-					dup[u.Scheme+"://"+u.Host+u.Path] = true
+			if u.Fragment == "" && u.RawQuery == "" && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
+				if !dup["http://"+u.Host+u.Path] && !dup["https://"+u.Host+u.Path] {
+					if _, err := ctx.Q.SendStringHead(u.String()); err != nil {
+						log.Printf("error: enqueue head %s - %s\n", u, err)
+					} else {
+						dup[u.String()] = true
+					}
 				}
+			} else {
+				// If prevents sending unnecessary Head requests
+				// Ignore if already duplicated
+				// Ignore URLs with different scheme than https or http
+				// Ignore if host of href isn't the same as the original host
+				if !dup["http://"+u.Host+u.Path] && !dup["https://"+u.Host+u.Path] && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
+					if _, err := ctx.Q.SendStringHead(u.Scheme + "://" + u.Host + u.Path); err != nil {
+						log.Printf("error: enqueue head %s - %s\n", u, err)
+					} else {
+						dup[u.Scheme+"://"+u.Host+u.Path] = true
+					}
+				}
+				// Index the without fragment version if not done before
+				dup[u.String()] = true
 			}
-			// Index the without fragment version if not done before
-			dup[u.String()] = true
 		}
-
-	})
+	}
 	mu.Unlock()
+	return
 }

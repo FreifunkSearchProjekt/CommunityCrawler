@@ -15,7 +15,7 @@ func ScanServer(ip string) (openPorts []int) {
 	return
 }
 
-// Hosts calculates the Ips in a subnet
+// Hosts calculates the Ips in a subnet TODO: Use map instead slice
 func Hosts(cidr string) ([]string, error) {
 	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
