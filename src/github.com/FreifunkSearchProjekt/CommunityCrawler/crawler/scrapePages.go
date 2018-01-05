@@ -101,7 +101,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 				return
 			}
 			// Enqueue all links as HEAD requests
-			enqueueLinks(ctx, doc)
+			enqueueLinks(ctx, doc, u)
 		}))
 
 	// Handle HEAD requests for html responses coming from the source host - we don't want
@@ -144,7 +144,7 @@ func logHandler(wrapped fetchbot.Handler) fetchbot.Handler {
 	})
 }
 
-func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document) {
+func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document, originalURL *url.URL) {
 	mu.Lock()
 	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 		val, _ := s.Attr("href")
@@ -158,7 +158,8 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document) {
 		// Ignore URLs that have a #
 		// Ignore URLs that have ?
 		// Ignore URLs with different scheme than https or http
-		if u.Fragment == "" && u.RawQuery == "" && (u.Scheme == "https" || u.Scheme == "http") {
+		// Ignore if host of href isn't the same as the original host
+		if u.Fragment == "" && u.RawQuery == "" && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
 			if !dup[u.String()] {
 				log.Println("Now: ", u.String())
 				if _, err := ctx.Q.SendStringHead(u.String()); err != nil {
@@ -168,8 +169,11 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document) {
 				}
 			}
 		} else {
-			// Index the without fragment version if not done before
-			if !dup[u.Scheme+u.Host+u.Path] && (u.Scheme == "https" || u.Scheme == "http") {
+			// If prevents sending unnecessary Head requests
+			// Ignore if already duplicated
+			// Ignore URLs with different scheme than https or http
+			// Ignore if host of href isn't the same as the original host
+			if !dup[u.Scheme+"://"+u.Host+u.Path] && (u.Scheme == "https" || u.Scheme == "http") && u.Host == originalURL.Host {
 				log.Println("Now2: ", u.Scheme+"://"+u.Host+u.Path)
 				if _, err := ctx.Q.SendStringHead(u.Scheme + "://" + u.Host + u.Path); err != nil {
 					log.Printf("error: enqueue head %s - %s\n", u, err)
@@ -177,6 +181,7 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document) {
 					dup[u.Scheme+"://"+u.Host+u.Path] = true
 				}
 			}
+			// Index the without fragment version if not done before
 			dup[u.String()] = true
 		}
 
