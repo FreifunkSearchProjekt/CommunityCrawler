@@ -174,7 +174,7 @@ func enqueueLinks(ctx *fetchbot.Context, doc *goquery.Document) {
 				if _, err := ctx.Q.SendStringHead(u.Scheme + "://" + u.Host + u.Path); err != nil {
 					log.Printf("error: enqueue head %s - %s\n", u, err)
 				} else {
-					dup[u.Scheme+u.Host+u.Path] = true
+					dup[u.Scheme+"://"+u.Host+u.Path] = true
 				}
 			}
 			dup[u.String()] = true
