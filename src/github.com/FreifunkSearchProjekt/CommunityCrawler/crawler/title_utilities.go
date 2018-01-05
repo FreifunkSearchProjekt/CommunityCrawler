@@ -12,22 +12,24 @@ import (
 var stripTitle = regexp.MustCompile(`(?:<title>)(.*)(?:<\/title>)`)
 
 func GetTitle(htm string) (string, error) {
+	var title string
 	doc, err := html.Parse(strings.NewReader(htm))
 	if err != nil {
 		return "", err
 	}
 	titleFound := cascadia.MustCompile("title").MatchFirst(doc)
 
-	var buf bytes.Buffer
-	w := io.Writer(&buf)
-	RenderErr := html.Render(w, titleFound)
-	if RenderErr != nil {
-		return "", RenderErr
-	}
-	titleNode := buf.String()
-	var title string
-	if len(titleNode) > 0 {
-		title = stripTitle.FindAllStringSubmatch(titleNode, -1)[0][1]
+	if titleFound != nil {
+		var buf bytes.Buffer
+		w := io.Writer(&buf)
+		RenderErr := html.Render(w, titleFound)
+		if RenderErr != nil {
+			return "", RenderErr
+		}
+		titleNode := buf.String()
+		if len(titleNode) > 0 {
+			title = stripTitle.FindAllStringSubmatch(titleNode, -1)[0][1]
+		}
 	}
 
 	return title, nil
