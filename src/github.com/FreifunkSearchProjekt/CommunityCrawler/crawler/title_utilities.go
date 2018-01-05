@@ -20,12 +20,15 @@ func GetTitle(htm string) (string, error) {
 
 	var buf bytes.Buffer
 	w := io.Writer(&buf)
-	err = html.Render(w, titleFound)
-	if err != nil {
-		return "", err
+	RenderErr := html.Render(w, titleFound)
+	if RenderErr != nil {
+		return "", RenderErr
 	}
 	titleNode := buf.String()
+	var title string
+	if len(titleNode) > 0 {
+		title = stripTitle.FindAllStringSubmatch(titleNode, -1)[0][1]
+	}
 
-	title := stripTitle.FindAllStringSubmatch(titleNode, 1)[0][1]
 	return title, nil
 }

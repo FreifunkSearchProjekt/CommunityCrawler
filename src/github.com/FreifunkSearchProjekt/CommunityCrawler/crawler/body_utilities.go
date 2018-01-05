@@ -16,9 +16,9 @@ func GetRenderedBody(htm string) (string, error) {
 	bodyFound := cascadia.MustCompile("body").MatchFirst(doc)
 	var buf bytes.Buffer
 	w := io.Writer(&buf)
-	err = html.Render(w, bodyFound)
-	if err != nil {
-		return "", err
+	RenderErr := html.Render(w, bodyFound)
+	if RenderErr != nil {
+		return "", RenderErr
 	}
 	body := buf.String()
 	return body, nil
