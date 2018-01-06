@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/html"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/PuerkitoBio/purell"
@@ -89,7 +90,7 @@ func Crawl(urlS string, config *config.Config) {
 				return
 			}
 
-			body, err := GetRenderedBody(doc)
+			body, err := html.GetRenderedBody(doc)
 			if err != nil {
 				log.Printf("[ERR] %s", err)
 			}
@@ -99,7 +100,7 @@ func Crawl(urlS string, config *config.Config) {
 				currentURLData.Body = page
 			}
 
-			title, err := GetTitle(doc)
+			title, err := html.GetTitle(doc)
 			if err != nil {
 				log.Printf("[ERR] %s", err)
 			}
@@ -109,7 +110,7 @@ func Crawl(urlS string, config *config.Config) {
 				currentURLData.Title = ctx.Cmd.URL().String()
 			}
 
-			description := GetDescription(doc)
+			description := html.GetDescription(doc)
 			currentURLData.Description = description
 
 			//Send Data
@@ -117,6 +118,7 @@ func Crawl(urlS string, config *config.Config) {
 			transactionData.BasicWebpages = make([]WebpageBasic, 1)
 			webpageBasic := WebpageBasic{
 				URL:         currentURLData.URL.String(),
+				Host:        currentURLData.URL.Host,
 				Path:        currentURLData.URL.Path,
 				Title:       currentURLData.Title,
 				Body:        currentURLData.Body,

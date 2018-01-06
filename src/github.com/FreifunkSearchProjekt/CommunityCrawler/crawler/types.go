@@ -6,6 +6,7 @@ type transaction struct {
 
 type WebpageBasic struct {
 	URL         string `json:"url"`
+	Host        string `json:"host"`
 	Path        string `json:"path"`
 	Title       string `json:"title"`
 	Body        string `json:"body"`
