@@ -1,6 +1,9 @@
 package crawler
 
 import (
+	"bytes"
+	"encoding/json"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/PuerkitoBio/purell"
@@ -31,11 +34,9 @@ type URL struct {
 	Title     string
 }
 
-func Crawl(urlS string) (dataToIndex map[int64]*URL) {
+func Crawl(urlS string, config *config.Config) {
 	// Don't force HTTP
 	purellFlags = purell.FlagDecodeDWORDHost | purell.FlagDecodeOctalHost | purell.FlagDecodeHexHost | purell.FlagRemoveUnnecessaryHostDots | purell.FlagRemoveEmptyPortSeparator | purell.FlagsUsuallySafeGreedy | purell.FlagRemoveDirectoryIndex | purell.FlagRemoveFragment | purell.FlagRemoveDuplicateSlashes
-
-	var UrlsData = make(map[int64]*URL)
 
 	// Parse the provided url
 	normalized, err := purell.NormalizeURLString(urlS, purellFlags)
@@ -58,6 +59,7 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 
 	// Handle GET requests for html responses, to parse the body and enqueue all links as HEAD
 	// requests.
+	// TODO refactor
 	mux.Response().Method("GET").ContentType("text/html").Handler(fetchbot.HandlerFunc(
 		func(ctx *fetchbot.Context, res *http.Response, err error) {
 			//Process current URL
@@ -71,7 +73,6 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			}
 			page = string(pageBytes)
 
-			log.Println(len(UrlsData))
 			currentURLData := &URL{}
 			currentURLData.URL = ctx.Cmd.URL()
 
@@ -106,7 +107,36 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 			} else {
 				currentURLData.Title = ctx.Cmd.URL().String()
 			}
-			UrlsData[int64(len(UrlsData))] = currentURLData
+
+			//Send Data
+			transactionData := transaction{}
+			transactionData.BasicWebpages = make([]WebpageBasic, 1)
+			webpageBasic := WebpageBasic{
+				URL:   currentURLData.URL.String(),
+				Path:  currentURLData.URL.Path,
+				Title: currentURLData.Title,
+				Body:  currentURLData.Body,
+			}
+			transactionData.BasicWebpages[0] = webpageBasic
+
+			b := new(bytes.Buffer)
+			json.NewEncoder(b).Encode(transactionData)
+			for _, i := range config.Indexer {
+				var url string
+				if strings.HasSuffix(i, "/") {
+					url = i + "connector_api/index/" + config.CommunityID + "/"
+				} else {
+					url = i + "/connector_api/index/" + config.CommunityID + "/"
+				}
+
+				_, err := http.Post(url, "application/json; charset=utf-8", b)
+				/*		if res.StatusCode != 200 {
+						log.Println("Some Error occured while contacting indexer: ", res.Status)
+					}*/
+				if err != nil {
+					log.Println("Got error sending: ", err)
+				}
+			}
 
 			// Process the body to find the links
 			// Enqueue all links as HEAD requests
@@ -140,8 +170,6 @@ func Crawl(urlS string) (dataToIndex map[int64]*URL) {
 		log.Printf("[ERR] GET %s - %s\n", normalized, err)
 	}
 	q.Block()
-
-	dataToIndex = UrlsData
 	return
 }
 

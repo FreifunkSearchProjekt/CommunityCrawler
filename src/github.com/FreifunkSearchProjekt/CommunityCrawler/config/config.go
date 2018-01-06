@@ -1,4 +1,4 @@
-package common
+package config
 
 import (
 	"gopkg.in/yaml.v2"
@@ -14,7 +14,7 @@ type Config struct {
 	ExternalPages        []string `yaml:"external_pages"`
 }
 
-func loadConfig(filepath string) (config *Config, err error) {
+func LoadConfig(filepath string) (config *Config, err error) {
 	config = &Config{}
 	// detect if file exists
 	var _, StatErr = os.Stat(filepath)

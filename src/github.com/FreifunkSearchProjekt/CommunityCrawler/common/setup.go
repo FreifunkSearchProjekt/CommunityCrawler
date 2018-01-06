@@ -1,24 +1,21 @@
 package common
 
 import (
-	"bytes"
-	"encoding/json"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler"
 	"log"
-	"net/http"
-	"strings"
 )
 
-func Setup(configPath string) (*Config, error) {
-	config, err := loadConfig(configPath)
+func Setup(configPath string) (*config.Config, error) {
+	configData, err := config.LoadConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return configData, nil
 }
 
-func Begin(config *Config) {
+func Begin(config *config.Config) {
 	//First crawl external
 	log.Println("Crawl External Pages")
 	for _, e := range config.ExternalPages {
@@ -38,37 +35,6 @@ func Begin(config *Config) {
 	}
 }
 
-func work(url string, config *Config) {
-	results := crawler.Crawl(url)
-
-	transactionData := transaction{}
-	transactionData.BasicWebpages = make([]WebpageBasic, len(results))
-	for i, u := range results {
-		page := WebpageBasic{
-			URL:   u.URL.String(),
-			Path:  u.URL.Path,
-			Title: u.Title,
-			Body:  u.Body,
-		}
-		transactionData.BasicWebpages[i] = page
-	}
-
-	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(transactionData)
-	for _, i := range config.Indexer {
-		var url string
-		if strings.HasSuffix(i, "/") {
-			url = i + "connector_api/index/" + config.CommunityID + "/"
-		} else {
-			url = i + "/connector_api/index/" + config.CommunityID + "/"
-		}
-
-		_, err := http.Post(url, "application/json; charset=utf-8", b)
-		/*		if res.StatusCode != 200 {
-				log.Println("Some Error occured while contacting indexer: ", res.Status)
-			}*/
-		if err != nil {
-			log.Println("Got error sending: ", err)
-		}
-	}
+func work(url string, config *config.Config) {
+	crawler.Crawl(url, config)
 }

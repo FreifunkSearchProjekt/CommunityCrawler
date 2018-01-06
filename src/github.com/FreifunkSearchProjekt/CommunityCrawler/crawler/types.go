@@ -1,4 +1,4 @@
-package common
+package crawler
 
 type transaction struct {
 	BasicWebpages []WebpageBasic `json:"basic_webpages"`
