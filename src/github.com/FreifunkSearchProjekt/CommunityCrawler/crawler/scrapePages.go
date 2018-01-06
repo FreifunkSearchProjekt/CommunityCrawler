@@ -28,10 +28,11 @@ var (
 )
 
 type URL struct {
-	URL       *url.URL
-	Microdata *microdata.Microdata
-	Body      string
-	Title     string
+	URL         *url.URL
+	Microdata   *microdata.Microdata
+	Body        string
+	Title       string
+	Description string
 }
 
 func Crawl(urlS string, config *config.Config) {
@@ -108,14 +109,18 @@ func Crawl(urlS string, config *config.Config) {
 				currentURLData.Title = ctx.Cmd.URL().String()
 			}
 
+			description := GetDescription(doc)
+			currentURLData.Description = description
+
 			//Send Data
 			transactionData := transaction{}
 			transactionData.BasicWebpages = make([]WebpageBasic, 1)
 			webpageBasic := WebpageBasic{
-				URL:   currentURLData.URL.String(),
-				Path:  currentURLData.URL.Path,
-				Title: currentURLData.Title,
-				Body:  currentURLData.Body,
+				URL:         currentURLData.URL.String(),
+				Path:        currentURLData.URL.Path,
+				Title:       currentURLData.Title,
+				Body:        currentURLData.Body,
+				Description: currentURLData.Description,
 			}
 			transactionData.BasicWebpages[0] = webpageBasic
 

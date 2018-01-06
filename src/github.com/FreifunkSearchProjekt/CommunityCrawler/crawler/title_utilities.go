@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	"github.com/grokify/html-strip-tags-go"
 )
 
 func GetTitle(htm *goquery.Document) (string, error) {
@@ -15,5 +16,6 @@ func GetTitle(htm *goquery.Document) (string, error) {
 		return "", err
 	}
 
-	return title, nil
+	stripped := strip.StripTags(title)
+	return stripped, nil
 }
