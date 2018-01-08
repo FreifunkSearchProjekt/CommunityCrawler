@@ -21,33 +21,46 @@ func GetDescription(htm *goquery.Document) string {
 			return val
 		})
 	} else {
-		// Check if we got a footer and if we can exclude it
-		footer := htm.Find("footer").Map(func(_ int, s *goquery.Selection) string {
+		//Check if we got role=main
+		main := htm.Find("*[role=main]").Map(func(_ int, s *goquery.Selection) string {
 			val, _ := s.Html()
 			return val
 		})
 
-		if len(footer) > 0 {
-			p = htm.Not("footer").Find("p").Map(func(_ int, s *goquery.Selection) string {
+		if len(main) > 0 {
+			p = htm.Find("*[role=main]").Find("p").Map(func(_ int, s *goquery.Selection) string {
 				val, _ := s.Html()
 				return val
 			})
 		} else {
-			// Check if we got a header and if we can exclude it
-			header := htm.Find("header").Map(func(_ int, s *goquery.Selection) string {
+			// Check if we got a footer and if we can exclude it
+			footer := htm.Find("footer").Map(func(_ int, s *goquery.Selection) string {
 				val, _ := s.Html()
 				return val
 			})
-			if len(header) > 0 {
-				p = htm.Not("header").Find("p").Map(func(_ int, s *goquery.Selection) string {
+
+			if len(footer) > 0 {
+				p = htm.Not("footer").Find("p").Map(func(_ int, s *goquery.Selection) string {
 					val, _ := s.Html()
 					return val
 				})
 			} else {
-				p = htm.Find("p").Map(func(_ int, s *goquery.Selection) string {
+				// Check if we got a header and if we can exclude it
+				header := htm.Find("header").Map(func(_ int, s *goquery.Selection) string {
 					val, _ := s.Html()
 					return val
 				})
+				if len(header) > 0 {
+					p = htm.Not("header").Find("p").Map(func(_ int, s *goquery.Selection) string {
+						val, _ := s.Html()
+						return val
+					})
+				} else {
+					p = htm.Find("p").Map(func(_ int, s *goquery.Selection) string {
+						val, _ := s.Html()
+						return val
+					})
+				}
 			}
 		}
 	}
