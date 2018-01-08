@@ -126,9 +126,9 @@ func Crawl(urlS string, config *config.Config) {
 			}
 			transactionData.BasicWebpages[0] = webpageBasic
 
-			b := new(bytes.Buffer)
-			json.NewEncoder(b).Encode(transactionData)
 			for _, i := range config.Indexer {
+				b := new(bytes.Buffer)
+				json.NewEncoder(b).Encode(transactionData)
 				var url string
 				if strings.HasSuffix(i, "/") {
 					url = i + "connector_api/index/" + config.CommunityID + "/"

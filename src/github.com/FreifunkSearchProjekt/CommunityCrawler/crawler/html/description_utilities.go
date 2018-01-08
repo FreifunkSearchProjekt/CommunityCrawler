@@ -3,6 +3,7 @@ package html
 import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/grokify/html-strip-tags-go"
+	"strings"
 )
 
 func GetDescription(htm *goquery.Document) string {
@@ -12,7 +13,8 @@ func GetDescription(htm *goquery.Document) string {
 	})
 
 	if len(p) > 0 {
-		stripped := strip.StripTags(p[0])
+		joined := strings.Join(p[:], " ")
+		stripped := strip.StripTags(joined)
 		return stripped
 	}
 	return ""

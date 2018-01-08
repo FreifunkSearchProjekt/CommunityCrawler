@@ -14,4 +14,4 @@
 .glide/
 bin/
 pkg/
-crawler.yaml
+/crawler.yaml
