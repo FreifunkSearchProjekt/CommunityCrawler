@@ -1,13 +1,13 @@
 package crawler
 
 import (
-	"bytes"
-	"encoding/json"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/feeds/rss"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/html"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/PuerkitoBio/purell"
+	"github.com/mmcdole/gofeed"
 	"github.com/namsral/microdata"
 	"io/ioutil"
 	"log"
@@ -26,15 +26,10 @@ var (
 	dup = map[string]bool{}
 
 	purellFlags purell.NormalizationFlags
-)
 
-type URL struct {
-	URL         *url.URL
-	Microdata   *microdata.Microdata
-	Body        string
-	Title       string
-	Description string
-}
+	// Don't kill pending sends
+	wg sync.WaitGroup
+)
 
 func Crawl(urlS string, config *config.Config) {
 	// Don't force HTTP
@@ -75,7 +70,8 @@ func Crawl(urlS string, config *config.Config) {
 			}
 			page = string(pageBytes)
 
-			currentURLData := &URL{}
+			currentURLData := &html.URL{}
+			currentURLData.WaitGroup = &wg
 			currentURLData.URL = ctx.Cmd.URL()
 
 			pageMicrodata, err := microdata.ParseURL(ctx.Cmd.URL().String())
@@ -113,37 +109,11 @@ func Crawl(urlS string, config *config.Config) {
 			description := html.GetDescription(doc)
 			currentURLData.Description = description
 
+			currentURLData.Config = config
+
 			//Send Data
-			transactionData := transaction{}
-			transactionData.BasicWebpages = make([]WebpageBasic, 1)
-			webpageBasic := WebpageBasic{
-				URL:         currentURLData.URL.String(),
-				Host:        currentURLData.URL.Host,
-				Path:        currentURLData.URL.Path,
-				Title:       currentURLData.Title,
-				Body:        currentURLData.Body,
-				Description: currentURLData.Description,
-			}
-			transactionData.BasicWebpages[0] = webpageBasic
-
-			for _, i := range config.Indexer {
-				b := new(bytes.Buffer)
-				json.NewEncoder(b).Encode(transactionData)
-				var url string
-				if strings.HasSuffix(i, "/") {
-					url = i + "connector_api/index/" + config.CommunityID + "/"
-				} else {
-					url = i + "/connector_api/index/" + config.CommunityID + "/"
-				}
-
-				_, err := http.Post(url, "application/json; charset=utf-8", b)
-				/*		if res.StatusCode != 200 {
-						log.Println("Some Error occured while contacting indexer: ", res.Status)
-					}*/
-				if err != nil {
-					log.Println("Got error sending: ", err)
-				}
-			}
+			wg.Add(1)
+			go currentURLData.SendData()
 
 			// Process the body to find the links
 			// Enqueue all links as HEAD requests
@@ -151,9 +121,54 @@ func Crawl(urlS string, config *config.Config) {
 			return
 		}))
 
+	// Handle GET requests for application/rss+xml responses
+	// TODO refactor
+	mux.Response().Method("GET").ContentType("application/rss+xml").Handler(fetchbot.HandlerFunc(
+		func(ctx *fetchbot.Context, res *http.Response, err error) {
+			//Process current URL
+			var feed string
+			defer res.Body.Close()
+
+			pageBytes, ReadErr := ioutil.ReadAll(res.Body)
+			if ReadErr != nil {
+				err = ReadErr
+				return
+			}
+			feed = string(pageBytes)
+
+			currentFeedData := &rss.RssFeed{}
+			currentFeedData.URL = ctx.Cmd.URL()
+			currentFeedData.Config = config
+			currentFeedData.WaitGroup = &wg
+
+			fp := gofeed.NewParser()
+			var ParseErr error
+			currentFeedData.Feed, ParseErr = fp.ParseString(feed)
+			if ParseErr != nil {
+				err = ParseErr
+				return
+			}
+
+			//Send Data
+			wg.Add(1)
+			go currentFeedData.SendData()
+
+			return
+		}))
+
 	// Handle HEAD requests for html responses coming from the source host - we don't want
 	// to crawl links from other hosts.
 	mux.Response().Method("HEAD").Host(u.Host).ContentType("text/html").Handler(fetchbot.HandlerFunc(
+		func(ctx *fetchbot.Context, res *http.Response, err error) {
+			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
+				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
+			}
+			return
+		}))
+
+	// Handle HEAD requests for rss feed responses coming from the source host - we don't want
+	// to crawl links from other hosts.
+	mux.Response().Method("HEAD").Host(u.Host).ContentType("application/rss+xml").Handler(fetchbot.HandlerFunc(
 		func(ctx *fetchbot.Context, res *http.Response, err error) {
 			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
 				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
@@ -177,6 +192,9 @@ func Crawl(urlS string, config *config.Config) {
 		log.Printf("[ERR] GET %s - %s\n", normalized, err)
 	}
 	q.Block()
+
+	log.Println("[INFO] Waiting for Goroutines to finish")
+	wg.Wait()
 	return
 }
 

@@ -4,4 +4,5 @@ indexer:
  - http://riot.nordgedanken.de:9999
 network: []
 external_pages:
+ - https://schleswig-flensburg.freifunk.net/feed/
  - https://schleswig-flensburg.freifunk.net
