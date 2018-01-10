@@ -46,7 +46,7 @@ func (u *RssFeed) SendData() {
 			url = i + "/connector_api/index/" + u.Config.CommunityID + "/"
 		}
 
-		log.Println("[INFO] Start transaction")
+		log.Println("[INFO][INDEXER] Start transaction")
 		_, err := http.Post(url, "application/json; charset=utf-8", b)
 		/*		if res.StatusCode != 200 {
 				log.Println("Some Error occured while contacting indexer: ", res.Status)
