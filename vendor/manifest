@@ -44,9 +44,27 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/codegangsta/cli",
+			"repository": "https://github.com/codegangsta/cli",
+			"revision": "75104e932ac2ddb944a6ea19d9f9f26316ff1145",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/grokify/html-strip-tags-go",
 			"repository": "https://github.com/grokify/html-strip-tags-go",
 			"revision": "fda376fed04166f97c4d8a367ad6f44f4136787e",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/mmcdole/gofeed",
+			"repository": "https://github.com/mmcdole/gofeed",
+			"revision": "42010a154d249f5f753dfe03a6390b59671e403e",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/mmcdole/goxpp",
+			"repository": "https://github.com/mmcdole/goxpp",
+			"revision": "77e4a51a73ed99ee3f33c1474dc166866304acbd",
 			"branch": "master"
 		},
 		{
