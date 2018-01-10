@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/utils"
+	"github.com/PuerkitoBio/fetchbot"
 	"github.com/mmcdole/gofeed"
 	"log"
 	"net/http"
@@ -17,9 +18,19 @@ type RssFeed struct {
 	*sync.WaitGroup
 	*config.Config
 	*gofeed.Feed
+	FC  *fetchbot.Context
 	URL *url.URL
 }
 
+// FindNewLinks searches for links inside the Feed and crawls them
+func (u *RssFeed) FindNewLinks() {
+	for _, l := range u.Items {
+		u.FC.Q.SendStringHead(l.Link)
+	}
+	u.Done()
+}
+
+// SendData sends the Data to the Indexer
 func (u *RssFeed) SendData() {
 	defer u.Done()
 

@@ -23,6 +23,7 @@ type URL struct {
 	Description string
 }
 
+// SendData sends the Data to the Indexer
 func (u *URL) SendData() {
 	defer u.Done()
 

@@ -138,6 +138,7 @@ func Crawl(urlS string, config *config.Config) {
 
 			currentFeedData := &rss.RssFeed{}
 			currentFeedData.URL = ctx.Cmd.URL()
+			currentFeedData.FC = ctx
 			currentFeedData.Config = config
 			currentFeedData.WaitGroup = &wg
 
@@ -152,6 +153,9 @@ func Crawl(urlS string, config *config.Config) {
 			//Send Data
 			wg.Add(1)
 			go currentFeedData.SendData()
+
+			wg.Add(1)
+			go currentFeedData.FindNewLinks()
 
 			return
 		}))
