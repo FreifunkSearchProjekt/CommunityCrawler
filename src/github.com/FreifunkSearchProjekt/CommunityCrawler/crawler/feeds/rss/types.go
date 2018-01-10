@@ -47,12 +47,12 @@ func (u *RssFeed) SendData() {
 		}
 
 		log.Println("[INFO][INDEXER] Start transaction")
-		_, err := http.Post(url, "application/json; charset=utf-8", b)
-		/*		if res.StatusCode != 200 {
-				log.Println("Some Error occured while contacting indexer: ", res.Status)
-			}*/
+		res, err := http.Post(url, "application/json; charset=utf-8", b)
 		if err != nil {
-			log.Println("[ERR] Got error sending: ", err)
+			log.Println("[ERR][INDEXER] Got error sending: ", err)
+		}
+		if res.StatusCode != 200 {
+			log.Println("[ERR][INDEXER]Some Error occured while contacting indexer: ", res.Status)
 		}
 	}
 }
