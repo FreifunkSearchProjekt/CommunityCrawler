@@ -56,7 +56,7 @@ func (u *URL) SendData() {
 			log.Println("[ERR][INDEXER] Got error sending: ", err)
 		}
 		if res.StatusCode != 200 {
-			log.Println("[ERR][INDEXER]Some Error occured while contacting indexer: ", res.Status)
+			log.Println("[ERR][INDEXER] Some Error occured while contacting indexer: ", res.Status)
 		}
 	}
 }
