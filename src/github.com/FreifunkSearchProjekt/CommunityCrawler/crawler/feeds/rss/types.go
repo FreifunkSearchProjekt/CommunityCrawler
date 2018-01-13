@@ -58,7 +58,14 @@ func (u *RssFeed) SendData() {
 		}
 
 		log.Println("[INFO][INDEXER] Start transaction")
-		res, err := http.Post(url, "application/json; charset=utf-8", b)
+		client := &http.Client{}
+		req, reqErr := http.NewRequest("POST", url, b)
+		if reqErr != nil {
+			log.Println("[ERR][INDEXER] Got error sending: ", reqErr)
+		}
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		req.Header.Set("Authorization", "Bearer "+u.Config.CommunityAccessToken)
+		res, err := client.Do(req)
 		if err != nil {
 			log.Println("[ERR][INDEXER] Got error sending: ", err)
 		}
