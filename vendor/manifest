@@ -50,6 +50,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/google/gopacket",
+			"repository": "https://github.com/google/gopacket",
+			"revision": "f8085a70289fe9d044ceeb8ab977636a24abe69e",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/grokify/html-strip-tags-go",
 			"repository": "https://github.com/grokify/html-strip-tags-go",
 			"revision": "fda376fed04166f97c4d8a367ad6f44f4136787e",

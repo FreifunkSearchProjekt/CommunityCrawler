@@ -4,6 +4,7 @@ import (
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler"
 	"log"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/scan"
 )
 
 func Setup(configPath string) (*config.Config, error) {
@@ -26,10 +27,10 @@ func Begin(config *config.Config) {
 	log.Println("Crawl Networks")
 	for _, i := range config.Network {
 		//TODO Handle error
-		hosts, _ := crawler.Hosts(i)
-		for _, h := range hosts {
-			for _, p := range crawler.ScanServer(h) {
-				work(h+":"+string(p), config)
+		hosts, _ := scan.Hosts(i)
+		for ip, ports := range scan.Scan(hosts) {
+			for _, p := range ports {
+				work(ip+":"+string(p), config)
 			}
 		}
 	}
