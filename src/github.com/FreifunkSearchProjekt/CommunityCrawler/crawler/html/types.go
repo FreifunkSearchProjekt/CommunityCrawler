@@ -60,6 +60,7 @@ func (u *URL) SendData() {
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
 		req.Header.Set("Authorization", "Bearer "+u.Config.CommunityAccessToken)
 		res, err := client.Do(req)
+		res.Body.Close()
 		if err != nil {
 			log.Println("[ERR][INDEXER] Got error sending: ", err)
 		}
