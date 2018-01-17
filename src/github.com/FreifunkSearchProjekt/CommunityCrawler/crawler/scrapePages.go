@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/config"
-	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/feeds/rss"
+	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/feeds/feeds"
 	"github.com/FreifunkSearchProjekt/CommunityCrawler/crawler/html"
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
@@ -121,9 +121,9 @@ func Crawl(urlS string, config *config.Config) {
 			return
 		}))
 
-	// Handle GET requests for application/rss+xml responses
+	// Handle GET requests for application/feeds+xml responses
 	// TODO refactor
-	mux.Response().Method("GET").ContentType("application/rss+xml").Handler(fetchbot.HandlerFunc(
+	mux.Response().Method("GET").ContentType("application/feeds+xml").Handler(fetchbot.HandlerFunc(
 		func(ctx *fetchbot.Context, res *http.Response, err error) {
 			//Process current URL
 			var feed string
@@ -136,7 +136,46 @@ func Crawl(urlS string, config *config.Config) {
 			}
 			feed = string(pageBytes)
 
-			currentFeedData := &rss.RssFeed{}
+			currentFeedData := &feeds.Feed{}
+			currentFeedData.URL = ctx.Cmd.URL()
+			currentFeedData.FC = ctx
+			currentFeedData.Config = config
+			currentFeedData.WaitGroup = &wg
+
+			fp := gofeed.NewParser()
+			var ParseErr error
+			currentFeedData.Feed, ParseErr = fp.ParseString(feed)
+			if ParseErr != nil {
+				err = ParseErr
+				return
+			}
+
+			//Send Data
+			wg.Add(1)
+			go currentFeedData.SendData()
+
+			wg.Add(1)
+			go currentFeedData.FindNewLinks()
+
+			return
+		}))
+
+	// Handle GET requests for application/atom+xml responses
+	// TODO refactor
+	mux.Response().Method("GET").ContentType("application/atom+xml").Handler(fetchbot.HandlerFunc(
+		func(ctx *fetchbot.Context, res *http.Response, err error) {
+			//Process current URL
+			var feed string
+			defer res.Body.Close()
+
+			pageBytes, ReadErr := ioutil.ReadAll(res.Body)
+			if ReadErr != nil {
+				err = ReadErr
+				return
+			}
+			feed = string(pageBytes)
+
+			currentFeedData := &feeds.Feed{}
 			currentFeedData.URL = ctx.Cmd.URL()
 			currentFeedData.FC = ctx
 			currentFeedData.Config = config
@@ -170,9 +209,19 @@ func Crawl(urlS string, config *config.Config) {
 			return
 		}))
 
-	// Handle HEAD requests for rss feed responses coming from the source host - we don't want
+	// Handle HEAD requests for feeds feed responses coming from the source host - we don't want
 	// to crawl links from other hosts.
-	mux.Response().Method("HEAD").Host(u.Host).ContentType("application/rss+xml").Handler(fetchbot.HandlerFunc(
+	mux.Response().Method("HEAD").Host(u.Host).ContentType("application/feeds+xml").Handler(fetchbot.HandlerFunc(
+		func(ctx *fetchbot.Context, res *http.Response, err error) {
+			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
+				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)
+			}
+			return
+		}))
+
+	// Handle HEAD requests for feeds feed responses coming from the source host - we don't want
+	// to crawl links from other hosts.
+	mux.Response().Method("HEAD").Host(u.Host).ContentType("application/atom+xml").Handler(fetchbot.HandlerFunc(
 		func(ctx *fetchbot.Context, res *http.Response, err error) {
 			if _, err := ctx.Q.SendStringGet(ctx.Cmd.URL().String()); err != nil {
 				log.Printf("[ERR] %s %s - %s\n", ctx.Cmd.Method(), ctx.Cmd.URL(), err)

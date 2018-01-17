@@ -1,4 +1,4 @@
-package rss
+package feeds
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-type RssFeed struct {
+type Feed struct {
 	*sync.WaitGroup
 	*config.Config
 	*gofeed.Feed
@@ -23,7 +23,7 @@ type RssFeed struct {
 }
 
 // FindNewLinks searches for links inside the Feed and crawls them
-func (u *RssFeed) FindNewLinks() {
+func (u *Feed) FindNewLinks() {
 	for _, l := range u.Items {
 		u.FC.Q.SendStringHead(l.Link)
 	}
@@ -31,12 +31,12 @@ func (u *RssFeed) FindNewLinks() {
 }
 
 // SendData sends the Data to the Indexer
-func (u *RssFeed) SendData() {
+func (u *Feed) SendData() {
 	defer u.Done()
 
 	log.Println("[INFO] Repacking struct")
 	transactionData := &utils.Transaction{}
-	transactionData.RssFeed = make([]utils.FeedBasic, 1)
+	transactionData.Feeds = make([]utils.FeedBasic, 1)
 	feedBasic := utils.FeedBasic{
 		URL:         u.URL.String(),
 		Host:        u.URL.Host,
@@ -44,7 +44,7 @@ func (u *RssFeed) SendData() {
 		Title:       u.Title,
 		Description: u.Description,
 	}
-	transactionData.RssFeed[0] = feedBasic
+	transactionData.Feeds[0] = feedBasic
 
 	log.Println("[INFO] Sending to indexer")
 	for _, i := range u.Config.Indexer {

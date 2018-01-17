@@ -2,7 +2,7 @@ package utils
 
 type Transaction struct {
 	BasicWebpages []WebpageBasic `json:"basic_webpages"`
-	RssFeed       []FeedBasic    `json:"rss_feeds"`
+	Feeds         []FeedBasic    `json:"feeds"`
 }
 
 type WebpageBasic struct {
